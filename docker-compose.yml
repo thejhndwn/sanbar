@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: ./backend
+    image: godocker
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      DB_URL: postgres://user:pass@db:5432/sanbar?sslmode=disable
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: sanbar
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    command: npm run dev  # For hot-reload
+volumes:
+  pgdata:
