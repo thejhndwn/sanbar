@@ -145,32 +145,49 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 		// Create users table
 		`CREATE TABLE IF NOT EXISTS users (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-			email VARCHAR(255) UNIQUE NOT NULL,
 			username VARCHAR(100) UNIQUE NOT NULL,
+			email VARCHAR(255) UNIQUE NOT NULL,
 			password_hash VARCHAR(255) NOT NULL,
 			created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+			updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+			is_guest BOOLEAN DEFAULT true,
+			guest_token UUID UNIQUE NOT NULL,
+			verified BOOLEAN DEFAULT false,
+			last_login TIMESTAMP NOT NULL
 		)`,
 		
 		// Create index on email for faster lookups
 		`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+		`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`,
+		`CREATE INDEX IF NOT EXISTS idx_registered_users ON users(is_guest) WHERE is_guest = false`,
+		`CREATE INDEX IF NOT EXISTS idx_guest_users ON users(is_guest) WHERE is_guest = true`,
+		`CREATE INDEX IF NOT EXISTS idx_inactive_guests ON users(created_at, last_login) WHERE is_guest = true`,
 		
-		// Create posts table
-		`CREATE TABLE IF NOT EXISTS posts (
+		`CREATE TABLE IF NOT EXISTS solo_survival_games (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 			user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			title VARCHAR(255) NOT NULL,
-			content TEXT,
-			published BOOLEAN DEFAULT FALSE,
-			created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+			num_cards SMALLINT NOT NULL DEFAULT 4,
+			target INTEGER NOT NULL DEFAULT 24,
+			status TEXT NOT NULL DEFAULT 'active' CHECK (status in ('active', 'completed')),
+			start_time TIMESTAMP NOT NULL DEFAULT NOW(),
+			end_time TIMESTAMP,
+			combos TEXT[] NOT NULL, 
+			solve_timestamps TIMESTAMP[] NOT NULL,
+			score INTEGER NOT NULL DEFAULT 0,
+			requires_verification BOOLEAN NOT NULL DEFAULT false,
+			is_verified BOOLEAN NOT NULL DEFAULT false,
+			video_url TEXT,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 		)`,
-		
-		// Create index on user_id for faster lookups
-		`CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id)`,
-		
-		// Create index on published posts
-		`CREATE INDEX IF NOT EXISTS idx_posts_published ON posts(published) WHERE published = true`,
+
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_user ON solo_survival_games(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_active ON solo_survival_games(status) WHERE status = 'active'`,
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_score ON solo_survival_games(score) WHERE status = 'completed' AND (requires_verification = false OR is_verified = true)`,
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_requires_verification ON solo_survival_games(requires_verification)`,
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_completed ON solo_survival_games(status) WHERE status = 'completed'`,
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_abandoned ON solo_survival_games(status, updated_at) WHERE status = 'active'`,
+
 	}
 
 	tx, err := dm.pool.Begin(ctx)
