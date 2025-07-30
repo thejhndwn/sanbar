@@ -7,12 +7,13 @@ services:
     depends_on:
       - db
     environment:
+      PGDBNAME: sanbar
       DB_URL: postgres://user:pass@db:5432/sanbar?sslmode=disable
   db:
     image: postgres:15
     environment:
       POSTGRES_USER: user
-      POSTGRES_PASSWORD: pass
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: sanbar
     ports:
       - "5432:5432"

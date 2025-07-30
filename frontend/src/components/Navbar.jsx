@@ -1,0 +1,32 @@
+// src/components/Navbar.jsx
+import React, { useContext } from 'react';
+import { Link } from 'react-router-dom';
+import AuthContext from '../context/AuthContext';
+
+export default function Navbar() {
+  const { user, openLoginModal, openSettingsModal } = useContext(AuthContext);
+
+  return (
+    <nav style={{
+      padding: '1rem',
+      backgroundColor: '#2c3e50',
+      color: 'white',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }}>
+      <div>
+        <Link to="/" style={{ color: 'white', marginRight: '1rem' }}>Home</Link>
+        <Link to="/leaderboard" style={{ color: 'white', marginRight: '1rem' }}>Leaderboard</Link>
+      </div>
+      <div>
+        {user ? (
+          <span>Welcome, {user.email}!</span>
+        ) : (
+          <button onClick={openLoginModal} style={{ marginRight: '0.5rem' }}>Login</button>
+        )}
+        <button onClick={openSettingsModal}>Settings</button>
+      </div>
+    </nav>
+  );
+}

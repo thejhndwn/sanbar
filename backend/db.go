@@ -1,3 +1,5 @@
+package main
+
 import (
 	"os"
 	"context"
@@ -18,50 +20,54 @@ type DatabaseConfig struct {
 	SSLMode string
 }
 
-func GetConfigFromEnv() *DatabaseConfig {
-	return &DatabaseConfig{
-		Host: getEnvOrDefault("PGHOST", "host"),
-		Port: getEnvOrDefault("PGPORT", "5432"),
-		User: getEnvOrDefault("PGUSER", "user"),
-		Password: getEnvOrDefault("PGPASSWORD", "password"),
-		DBName: getEnvOrDefault("PGDATABASE", "database"),
-		SSLMode: getEnvOrDefault("PGSSLMODE", "disable")
-	)
-}
-
-func genEnvOrDefault(k string, d string) string {
+func getEnvOrDefault(k string, d string) string {
 	if value := os.Getenv(k); value != "" { 
 		return value
 		}
 	return d
 }
 
+func GetConfigFromEnv() *DatabaseConfig {
+	return &DatabaseConfig{
+		Host: getEnvOrDefault("PGHOST", "db"),
+		Port: getEnvOrDefault("PGPORT", "5432"),
+		User: getEnvOrDefault("PGUSER", "user"),
+		Password: getEnvOrDefault("PGPASSWORD", "password"),
+		DBName: getEnvOrDefault("PGDATABASE", "sanbar"),
+		SSLMode: getEnvOrDefault("PGSSLMODE", "disable"),
+	}
+}
+
+
 func (c *DatabaseConfig) BuildConnectionString(dbName string) string {
 	if dbName == "" {
 		dbName = c.DBName
 	}
-	return fmt.Sprintf("%s%s%s%s%s", c.Host, c.Port, c.User, c.Password, c.DBName, c.SSLMode)
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode)
 }
 
 type DatabaseManager struct {
-	config *DatabaseConfig,
+	config *DatabaseConfig
 	pool *pgxpool.Pool
 }
 	
 func NewDatabaseManager(c *DatabaseConfig) *DatabaseManager {
 	return &DatabaseManager{
-		config: c
+		config: c,
 	}
 }
 
 func (dm *DatabaseManager) Initialize(ctx context.Context) error {
+	fmt.Println("start init")
 	if err := dm.ensureDatabaseExists(ctx); err != nil {
 		return fmt.Errorf("failed to ensure database exists: %w", err)
 	}
+	fmt.Println("createpool")
 
 	if err := dm.createConnectionPool(ctx); err != nil {
 		return fmt.Errorf("failed to create connection to connection pool: %w", err)
 	}	
+	fmt.Println("migrate")
 
 	if err := dm.runMigrations(ctx); err != nil {
 		return fmt.Errorf("failed to run migrations: %w", err)
@@ -71,12 +77,12 @@ func (dm *DatabaseManager) Initialize(ctx context.Context) error {
 }
 
 func (dm *DatabaseManager) ensureDatabaseExists(ctx context.Context) error {
-	connString := dm.config.BuildConnectionString()
+	connString := dm.config.BuildConnectionString("")
 	conn, err := pgx.Connect(ctx, connString)
 	if err != nil {
-		return fmt.Error("failed to connect to psql database")
+		return fmt.Errorf("failed to connect to psql database: %s", connString)
 	}
-	defer conn.close()
+	defer conn.Close(ctx)
 
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)"
@@ -96,7 +102,7 @@ func (dm *DatabaseManager) ensureDatabaseExists(ctx context.Context) error {
 	} else {
 		log.Printf("Database '%s' already exists", dm.config.DBName)
 	}
-
+	fmt.Println("ensuredatabaseexists past")		
 	return nil
 }
 
