@@ -151,9 +151,9 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 			created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			is_guest BOOLEAN DEFAULT true,
-			guest_token UUID UNIQUE NOT NULL,
+			guest_token TEXT UNIQUE NOT NULL,
 			verified BOOLEAN DEFAULT false,
-			last_login TIMESTAMP NOT NULL
+			last_login TIMESTAMP NOT NULL DEFAULT NOW()
 		)`,
 		
 		// Create index on email for faster lookups
@@ -171,8 +171,8 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 			status TEXT NOT NULL DEFAULT 'active' CHECK (status in ('active', 'completed')),
 			start_time TIMESTAMP NOT NULL DEFAULT NOW(),
 			end_time TIMESTAMP,
-			combos TEXT[] NOT NULL, 
-			solve_timestamps TIMESTAMP[] NOT NULL,
+			combos TEXT[] NOT NULL DEFAULT '{}', 
+			solve_timestamps TIMESTAMP[] NOT NULL DEFAULT '{}',
 			score INTEGER NOT NULL DEFAULT 0,
 			requires_verification BOOLEAN NOT NULL DEFAULT false,
 			is_verified BOOLEAN NOT NULL DEFAULT false,
@@ -187,6 +187,13 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_requires_verification ON solo_survival_games(requires_verification)`,
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_completed ON solo_survival_games(status) WHERE status = 'completed'`,
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_abandoned ON solo_survival_games(status, updated_at) WHERE status = 'active'`,
+
+		`CREATE TABLE IF NOT EXISTS combos (
+			id TEXT PRIMARY KEY,
+			cards TEXT[]
+		)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_combos_cards ON combos(id)`,
 
 	}
 

@@ -1,7 +1,7 @@
 // Game.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import NewGameModal from './NewGameModal';
-import BreakModal from './BreakModal';
+import NewGameModal from '../NewGameModal';
+import BreakModal from '../BreakModal';
 
 const GAME_STATES = {
   READY: 'ready',

@@ -1,7 +1,7 @@
 // src/pages/Home.jsx
 import React, { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AuthContext from '../context/AuthContext';
+import AuthContext from '../AuthContext';
 
 export default function Home() {
   const { openGameConfigModal } = useContext(AuthContext);

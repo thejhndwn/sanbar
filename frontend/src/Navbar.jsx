@@ -1,10 +1,10 @@
 // src/components/Navbar.jsx
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import AuthContext from '../context/AuthContext';
+import AuthContext from './AuthContext';
 
 export default function Navbar() {
-  const { user, openLoginModal, openSettingsModal } = useContext(AuthContext);
+  const { user, openLoginModal } = useContext(AuthContext);
 
   return (
     <nav style={{
@@ -17,7 +17,6 @@ export default function Navbar() {
     }}>
       <div>
         <Link to="/" style={{ color: 'white', marginRight: '1rem' }}>Home</Link>
-        <Link to="/leaderboard" style={{ color: 'white', marginRight: '1rem' }}>Leaderboard</Link>
       </div>
       <div>
         {user ? (
@@ -25,7 +24,6 @@ export default function Navbar() {
         ) : (
           <button onClick={openLoginModal} style={{ marginRight: '0.5rem' }}>Login</button>
         )}
-        <button onClick={openSettingsModal}>Settings</button>
       </div>
     </nav>
   );
