@@ -243,9 +243,6 @@ const Game = () => {
     setOperation(null);
   };
 
-  const handleNewGame = () => {
-    setShowNewGameModal(true);
-  };
 
   const handleExitBreakEarly = () => {
     setShowBreakModal(false);
@@ -265,7 +262,6 @@ const Game = () => {
     <div className="game-ready">
       <h2>🎯 Ready to Play 24?</h2>
       <button onClick={startGame}>Start Game</button>
-      <button onClick={handleNewGame}>New Game (Config)</button>
     </div>
   );
 
@@ -333,7 +329,6 @@ const Game = () => {
       <p>Final Score: <strong>{currentScore}</strong></p>
       <p>Problems Solved: {problemsSolved}</p>
       <button onClick={handlePlayAgain}>🔁 Play Again</button>
-      <button onClick={handleNewGame}>🆕 New Game</button>
     </div>
   );
 

@@ -1,10 +1,11 @@
-// src/components/Navbar.jsx
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import AuthContext from './AuthContext';
+import  { AuthContext } from './AuthContext';
 
 export default function Navbar() {
+  console.log("flag 1", AuthContext)
   const { user, openLoginModal } = useContext(AuthContext);
+  console.log("there's an error?")
 
   return (
     <nav style={{

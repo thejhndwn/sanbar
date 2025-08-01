@@ -1,11 +1,11 @@
 // src/pages/Home.jsx
-import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AuthContext from '../AuthContext';
+import React, { useState } from 'react';
+import NewGameModal from '../NewGameModal';
 
 export default function Home() {
-  const { openGameConfigModal } = useContext(AuthContext);
-  const navigate = useNavigate();
+
+  const [showNewGameModal, setShowNewGameModal] = useState(false);
+
 
   return (
     <div style={{
@@ -16,10 +16,9 @@ export default function Home() {
       height: '80vh',
       textAlign: 'center'
     }}>
-      <h1>Welcome to 24 Game</h1>
-      <p>Solve arithmetic puzzles to make 24!</p>
+      <h1>Sanbar</h1>
       <button
-        onClick={openGameConfigModal}
+        onClick={() => setShowNewGameModal(true)}
         style={{
           padding: '12px 24px',
           fontSize: '1.2rem',
@@ -30,8 +29,10 @@ export default function Home() {
           cursor: 'pointer'
         }}
       >
-        Start Game
+       Play 
       </button>
+      {showNewGameModal &&
+      <NewGameModal isOpen={showNewGameModal} onClose={() => setShowNewGameModal(false)}/>}
     </div>
   );
 }
