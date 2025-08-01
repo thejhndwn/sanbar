@@ -161,7 +161,7 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 		`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`,
 		`CREATE INDEX IF NOT EXISTS idx_registered_users ON users(is_guest) WHERE is_guest = false`,
 		`CREATE INDEX IF NOT EXISTS idx_guest_users ON users(is_guest) WHERE is_guest = true`,
-		`CREATE INDEX IF NOT EXISTS idx_inactive_guests ON users(created_at, last_login) WHERE is_guest = true`,
+		`CREATE INDEX IF NOT EXISTS idx_inactive_guests ON users(created_at, last_active) WHERE is_guest = true`,
 		
 		`CREATE TABLE IF NOT EXISTS solo_survival_games (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
