@@ -20,7 +20,7 @@ func main()	{
 		return 
 	}
 
-
+	login := LoginHandler(dbm)
 	register := RegisterHandler(dbm)
 	survival := MakeSurvival(dbm)
 	start := Start(dbm)
@@ -29,7 +29,7 @@ func main()	{
 
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/register", register)
-	api.HandleFunc("/login", LoginHandler)
+	api.HandleFunc("/login", login)
 	api.HandleFunc("/newgame", survival)
 
 	game_api := r.PathPrefix("/api/game").Subrouter()

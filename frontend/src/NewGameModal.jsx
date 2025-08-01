@@ -36,16 +36,12 @@ export default function NewGameModal({ isOpen, onClose }) {
       <div className="modal">
         <h2>Start New Game</h2>
 
-        <div className="quick-play">
-          <h3>Quick Play</h3>
+        <div className="modal-options">
           <button onClick={startQuickGame} disabled={loading}>
-            {loading ? 'Starting...' : '4 Cards → 24'}
+            {loading ? 'Starting...' : '24'}
           </button>
-        </div>
 
-        <div className="custom-play">
-          <h3>Custom</h3>
-          <button onClick={startCustom}>Configure Game</button>
+          <button onClick={startCustom}>Custom</button>
         </div>
 
         <button className="close-btn" onClick={onClose}>

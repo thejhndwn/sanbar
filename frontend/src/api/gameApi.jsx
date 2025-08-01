@@ -2,7 +2,7 @@
 import { api } from './client';
 
 export const createGame = (data) => {
-  return api.post('/api/games', data);
+  return api.post('/api/newgame', data);
 };
 
 export const solvePuzzle = (gameId, solution) => {

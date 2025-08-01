@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom';
 import  { AuthContext } from './AuthContext';
 
 export default function Navbar() {
-  console.log("flag 1", AuthContext)
-  const { user, openLoginModal } = useContext(AuthContext);
-  console.log("there's an error?")
+  const { user, openLoginModal, openSettingsModal } = useContext(AuthContext);
 
   return (
     <nav style={{
@@ -25,6 +23,9 @@ export default function Navbar() {
         ) : (
           <button onClick={openLoginModal} style={{ marginRight: '0.5rem' }}>Login</button>
         )}
+      </div>
+      <div> 
+        <button onClick={openSettingsModal} style={{marginRight: '0.5rem'}}> ⚙️</button>
       </div>
     </nav>
   );
