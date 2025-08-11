@@ -14,11 +14,10 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 
 		n := 4
 		x := 24
-		token := "d3554666-2372-4179-875a-051ea9c8c732"
 		//replace the above values from the request body
+		
 
-
-		user_id := GetUserIDFromToken(token, dbm)
+		user_id := ctx.get("user_id")
 		combos := GetCombos(n, x, dbm)
 
 		// todo: add numcards and target later
