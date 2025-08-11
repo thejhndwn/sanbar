@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import NewGameModal from '../NewGameModal';
 import BreakModal from '../BreakModal';
+import { useParams } from 'react-router-dom'
 
 const GAME_STATES = {
   READY: 'ready',
@@ -10,10 +11,13 @@ const GAME_STATES = {
   BREAK: 'break',
 };
 
+// WE should make this a layer which gets from the game type. but we chilling now
 const Game = () => {
   const [gameState, setGameState] = useState(GAME_STATES.READY);
+    const {id } = useParams();
 
   // Game data from backend
+    // TODO: Put this in their own component? 
   const [cards, setCards] = useState([]); // Each card: { id, value }
   const [currentScore, setCurrentScore] = useState(0);
   const [problemsSolved, setProblemsSolved] = useState(0);
@@ -22,16 +26,17 @@ const Game = () => {
 
   // Expression & selected items (for UI)
   const [selectedItems, setSelectedItems] = useState([]); // IDs or values
-  const [operation, setOperation] = useState(null);
+  // const [operation, setOperation] = useState(null);
 
   // Undo stack: stores full state snapshots
-  const [undoStack, setUndoStack] = useState([]);
+  //const [undoStack, setUndoStack] = useState([]);
 
   // Modals
   const [showNewGameModal, setShowNewGameModal] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [breakTimeLeft, setBreakTimeLeft] = useState(600);
 
+    // TODO: what is this? 
   const intervalRef = useRef(null);
 
   // --- API Calls ---
@@ -47,32 +52,7 @@ const Game = () => {
     }
   };
 
-  const applyOperation = async (card1Id, card2Id, op) => {
-    try {
-      const res = await fetch('/api/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ card1Id, card2Id, operation: op }),
-      });
-      const data = await res.json();
-
-      if (data.valid) {
-        // Save current state to undo stack before updating
-        setUndoStack((prev) => [
-          ...prev,
-          { cards, selectedItems, operation, timeRemaining },
-        ]);
-
-        loadGameData(data);
-        setSelectedItems([]);
-        setOperation(null);
-        checkForBreak(data.problemsSolved);
-      }
-      return data;
-    } catch (err) {
-      console.error('Operation failed:', err);
-    }
-  };
+    /** j
 
   const handleUndo = async () => {
     if (undoStack.length === 0) return;
@@ -98,6 +78,8 @@ const Game = () => {
       // Optionally: reload game or show warning
     }
   };
+
+    **/
 
   const skipProblem = async () => {
     try {
@@ -133,6 +115,7 @@ const Game = () => {
   };
 
   const checkForBreak = (currentProblemsSolved) => {
+      //TODO: make constant
     if (currentProblemsSolved > 0 && currentProblemsSolved % 100 === 0) {
       setBreakTimeLeft(600);
       setGameState(GAME_STATES.BREAK);
@@ -173,7 +156,7 @@ const Game = () => {
           }
           return prev - 1;
         });
-      }, 1000);
+      }, 10);
     }
 
     return () => {
@@ -286,35 +269,9 @@ const Game = () => {
         ))}
       </div>
 
-      <div className="operation-area">
-        {selectedItems.length > 0 && (
-          <div className="selection">
-            Selected: {selectedItems.map(c => c.value).join(', ')}
-            {selectedItems.length === 1 && !operation && (
-              <div>
-                Choose operator: + − × ÷
-              </div>
-            )}
-          </div>
-        )}
-
-        {selectedItems.length === 2 && !operation && (
-          <div className="operators">
-            {['+', '-', '*', '/'].map((op) => (
-              <button key={op} onClick={() => handleOperatorClick(op)}>
-                {op === '*' ? '×' : op === '/' ? '÷' : op}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {operation && selectedItems.length === 1 && (
-          <div>Operator: <strong>{operation}</strong></div>
-        )}
-      </div>
 
       <div className="actions">
-        <button onClick={handleUndo} disabled={undoStack.length === 0}>
+        <button onClick={handleUndo} disabled={}>
           🔄 Undo
         </button>
         <button onClick={handleSkip}>⏭️ Skip</button>

@@ -7,36 +7,60 @@ import (
 	"encoding/json"
 	"time"
 )	
+
+type NewGamePayload struct {
+	Target int `json:"target"`
+	NumCards int `json:"num_cards"`
+	GameType string `json:"game_type"`
+}
+
+
 func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		ctx := context.Background()
 		fmt.Fprint(w, "You entered the Survival")
 
-		n := 4
-		x := 24
-		//replace the above values from the request body
-		
+		var payload NewGamePayload
+		if err := json.NewDecoder(r.Body).Decode(&payload);
+		err != nil {
+			http.Error(w, "INvalid JSON",
+			http.StatusBadRequest)
+			return 
+		}
 
-		user_id := ctx.get("user_id")
-		combos := GetCombos(n, x, dbm)
+		defer r.Body.Close()
+		target := NewGamePayload.Target
+		numCards := NewGamePayload.NumCards
+		gameType := NewGamePayload.GameType
 
+			
+		user_id := r.Context().Get("user_id")
+		combos := GetCombos(numCards, target, dbm)
+		var id string
 		// todo: add numcards and target later
 		result, err := dbm.pool.Exec(ctx,
-			"INSERT INTO solo_survival_games(id, user_id, combos) VALUES ($1, $2, $3)",
-			token, user_id, combos,
-		)
+			"INSERT INTO solo_survival_games(user_id, combos) VALUES ($1, $2, $3) RETURNING id",
+			user_id, combos,
+		).Scan(&id)
 		fmt.Printf("we have made the game : %s", result)
 
 		if err != nil {
 			fmt.Println("make survival failed")
 		}
 
-		
+		response := map[string]interface{}(
+			"id": id,
+		)
+
+		w.Header().set("Content-type", "application/json")
+		w.writeHeader(http.StatusCreated)
+
+		if nil := json.NewEncoder(w).Encode(response); err != 
+		nil {
+			fmt.Println("JSON encode error:", err)
+		}
 	}
 
-	// make game db insertion
 
-	// return game uuid
 }
 
 //user submits problem, if no more problems left trigger end sequence, otherwise update game data and serve next problem
