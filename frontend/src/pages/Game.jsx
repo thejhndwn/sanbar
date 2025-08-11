@@ -11,6 +11,12 @@ const GAME_STATES = {
   BREAK: 'break',
 };
 
+struct Operation = {
+    cards: []int,
+    selector: int,
+
+}
+
 // WE should make this a layer which gets from the game type. but we chilling now
 const Game = () => {
   const [gameState, setGameState] = useState(GAME_STATES.READY);
@@ -26,12 +32,9 @@ const Game = () => {
 
   // Expression & selected items (for UI)
   const [selectedItems, setSelectedItems] = useState([]); // IDs or values
-  // const [operation, setOperation] = useState(null);
+    const [ operations, setOperations] = useState(Operation[]);
+    const [ selector, setSelector] = useState(0)
 
-  // Undo stack: stores full state snapshots
-  //const [undoStack, setUndoStack] = useState([]);
-
-  // Modals
   const [showNewGameModal, setShowNewGameModal] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [breakTimeLeft, setBreakTimeLeft] = useState(600);
@@ -185,6 +188,10 @@ const Game = () => {
   // --- Handlers ---
 
   const handleCardClick = (card) => {
+
+      //TODO: make conditions for card just click, adjust selector
+      //selector important for third card assumptions, and operator var
+      /**
     if (selectedItems.length >= 2) return; // Already selected two
 
     const newSelection = [...selectedItems, card];
@@ -194,18 +201,9 @@ const Game = () => {
       const [c1, c2] = newSelection;
       applyOperation(c1.id, c2.id, operation);
     }
-  };
+      **/
 
-  const handleOperatorClick = (op) => {
-    if (selectedItems.length === 0) return;
-    if (selectedItems.length === 1) {
-      setOperation(op);
-    }
-    // If two selected, apply immediately
-    if (selectedItems.length === 2) {
-      const [c1, c2] = selectedItems;
-      applyOperation(c1.id, c2.id, op);
-    }
+            
   };
 
   const handleSkip = () => {
