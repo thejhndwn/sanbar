@@ -1,13 +1,14 @@
 // src/api/client.js
-const API_BASE = import.meta.env.VITE_API_URL;
 
 class ApiClient {
   async request(endpoint, options = {}) {
-    const url = `${API_BASE}${endpoint}`;
+    const token = localStorage.getItem('sanbarToken');
+    const url = `${endpoint}`;
     const config = {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+          'Authorization': token,
         ...options.headers,
       },
     };

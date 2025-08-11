@@ -13,6 +13,7 @@ export default function NewGameModal({ isOpen, onClose }) {
   const startQuickGame = async () => {
     setLoading(true);
     try {
+        console.log("we aren't even printing here")
       const { id } = await createGame({
         game_type: 'solo_survival',
         num_cards: 4,

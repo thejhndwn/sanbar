@@ -5,17 +5,16 @@ export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [guestId] = useState(() => {
-    const saved = localStorage.getItem('guestId');
-    if (saved) return saved;
-    const id = crypto.randomUUID();
-    localStorage.setItem('guestId', id);
-    return id;
-  });
+    const saved = localStorage.getItem('sanbarToken');
+    if (! saved) {
+        const id = crypto.randomUUID();
+        localStorage.setItem('sanbarToken', id);
+    }
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
+  // TODO: add request to login route for api client
   const login = (userData) => {
     setUser(userData);
     setShowLoginModal(false);
@@ -34,9 +33,6 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user,
-      guestId,
-      login,
-      logout,
       openLoginModal,
       openSettingsModal,
       showLoginModal,
