@@ -11,13 +11,7 @@ const GAME_STATES = {
   BREAK: 'break',
 };
 
-struct Operation = {
-    cards: []int,
-    selector: int,
-
-}
-
-// WE should make this a layer which gets from the game type. but we chilling now
+// Specifically this is for re
 const Game = () => {
   const [gameState, setGameState] = useState(GAME_STATES.READY);
     const {id } = useParams();
@@ -32,8 +26,7 @@ const Game = () => {
 
   // Expression & selected items (for UI)
   const [selectedItems, setSelectedItems] = useState([]); // IDs or values
-    const [ operations, setOperations] = useState(Operation[]);
-    const [ selector, setSelector] = useState(0)
+    const [ operations, setOperations] = useState([]);
 
   const [showNewGameModal, setShowNewGameModal] = useState(false);
   const [showBreakModal, setShowBreakModal] = useState(false);
@@ -269,7 +262,7 @@ const Game = () => {
 
 
       <div className="actions">
-        <button onClick={handleUndo} disabled={}>
+        <button onClick={handleUndo}> // disable if expressions is empty
           🔄 Undo
         </button>
         <button onClick={handleSkip}>⏭️ Skip</button>

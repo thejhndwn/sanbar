@@ -28,31 +28,32 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 		}
 
 		defer r.Body.Close()
-		target := NewGamePayload.Target
-		numCards := NewGamePayload.NumCards
-		gameType := NewGamePayload.GameType
+		target := payload.Target
+		numCards := payload.NumCards
+		// gameType := payload.GameType
 
-			
-		user_id := r.Context().Get("user_id")
+	    type contextKey string
+		var UserKey contextKey = "user"
+
+		user_id := r.Context().Value(UserKey)
 		combos := GetCombos(numCards, target, dbm)
 		var id string
 		// todo: add numcards and target later
-		result, err := dbm.pool.Exec(ctx,
-			"INSERT INTO solo_survival_games(user_id, combos) VALUES ($1, $2, $3) RETURNING id",
+		err := dbm.pool.QueryRow(r.Context(),
+			"INSERT INTO solo_survival_games(user_id, combos) VALUES ($1, $2) RETURNING id",
 			user_id, combos,
 		).Scan(&id)
-		fmt.Printf("we have made the game : %s", result)
 
 		if err != nil {
 			fmt.Println("make survival failed")
 		}
 
-		response := map[string]interface{}(
+		response := map[string]interface{}{
 			"id": id,
-		)
+		}
 
-		w.Header().set("Content-type", "application/json")
-		w.writeHeader(http.StatusCreated)
+		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 
 		if nil := json.NewEncoder(w).Encode(response); err != 
 		nil {

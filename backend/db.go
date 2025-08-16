@@ -184,10 +184,9 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_user ON solo_survival_games(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_active ON solo_survival_games(status) WHERE status = 'active'`,
-		`CREATE INDEX IF NOT EXISTS idx_survival_games_score ON solo_survival_games(score) WHERE status = 'completed' AND (requires_verification = false OR is_verified = true)`,
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_requires_verification ON solo_survival_games(requires_verification)`,
 		`CREATE INDEX IF NOT EXISTS idx_survival_games_completed ON solo_survival_games(status) WHERE status = 'completed'`,
-		`CREATE INDEX IF NOT EXISTS idx_survival_games_abandoned ON solo_survival_games(status, updated_at) WHERE status = 'active'`,
+		`CREATE INDEX IF NOT EXISTS idx_survival_games_active ON solo_survival_games(status, updated_at) WHERE status = 'active'`,
 
 		`CREATE TABLE IF NOT EXISTS combos (
 			id TEXT PRIMARY KEY,
