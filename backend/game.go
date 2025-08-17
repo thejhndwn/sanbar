@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"time"
+	"log"
 )	
 
 type NewGamePayload struct {
@@ -17,6 +18,7 @@ type NewGamePayload struct {
 
 func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
+		log.Println("Received the game request")
 		fmt.Fprint(w, "You entered the Survival")
 
 		var payload NewGamePayload
@@ -48,7 +50,7 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 			fmt.Println("make survival failed")
 		}
 
-		response := map[string]interface{}{
+		response := map[string]string{
 			"id": id,
 		}
 

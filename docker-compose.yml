@@ -24,5 +24,7 @@ services:
     ports:
       - "3000:3000"
     command: npm run dev  # For hot-reload
+    environment: 
+      REACT_APP_API_BASE: http://localhost:8080
 volumes:
   pgdata:

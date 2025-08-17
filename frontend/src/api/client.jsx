@@ -2,8 +2,11 @@
 
 class ApiClient {
   async request(endpoint, options = {}) {
+      console.log("is it this?")
     const token = localStorage.getItem('sanbarToken');
-    const url = `${endpoint}`;
+      console.log("no, but why tho")
+    const url = `${process.env.REACT_APP_API_BASE}${endpoint}`;
+      console.log("surely ain't this")
     const config = {
       ...options,
       headers: {
@@ -13,7 +16,10 @@ class ApiClient {
       },
     };
 
+    console.log("we are sending shit to:", url)
+
     const response = await fetch(url, config);
+    console.log("got a response")
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
