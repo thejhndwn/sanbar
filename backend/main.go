@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"context"
 	"net/http"
 )
@@ -14,6 +15,12 @@ func main()	{
 	dbc := GetConfigFromEnv()
 	dbm := NewDatabaseManager(dbc)
 	c := context.Background()
+
+   cors_middle := cors.New(cors.Options{
+        AllowedOrigins: []string{"http://localhost:3000"}, // Frontend origin
+        AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+        AllowedHeaders: []string{"Content-Type"},
+    })
 
 	if err := dbm.Initialize(c); err != nil {
 		fmt.Printf("DATABSE INITAILIXE NOT GOOD ABORT: %s", err)
@@ -43,5 +50,7 @@ func main()	{
 	user_api := r.PathPrefix("/user").Subrouter()
 	user_api.HandleFunc("/{id}/", Profile)
 
-	http.ListenAndServe(":8080", r)
+	handler := cors_middle.Handler(r)
+
+	http.ListenAndServe(":8080", handler)
 }
