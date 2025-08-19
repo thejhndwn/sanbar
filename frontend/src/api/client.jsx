@@ -2,16 +2,15 @@
 
 class ApiClient {
   async request(endpoint, options = {}) {
-      console.log("is it this?")
     const token = localStorage.getItem('sanbarToken');
-      console.log("no, but why tho")
-    const url = `${process.env.REACT_APP_API_BASE}${endpoint}`;
+      console.log(import.meta.env.VITE_REACT_APP_API_BASE)
+    const url = `${import.meta.env.VITE_REACT_APP_API_BASE}${endpoint}`;
       console.log("surely ain't this")
     const config = {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
-          'Authorization': token,
+        'content-type': 'application/json',
+          'authorization': token,
         ...options.headers,
       },
     };
@@ -19,7 +18,7 @@ class ApiClient {
     console.log("we are sending shit to:", url)
 
     const response = await fetch(url, config);
-    console.log("got a response")
+    console.log("got a response", response)
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
