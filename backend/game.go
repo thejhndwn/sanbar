@@ -22,7 +22,6 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 			return 
 		}
 		log.Println("Received the game request")
-		fmt.Fprint(w, "You entered the Survival")
 
 		var payload NewGamePayload
 		if err := json.NewDecoder(r.Body).Decode(&payload);
