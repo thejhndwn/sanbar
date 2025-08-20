@@ -18,6 +18,9 @@ type NewGamePayload struct {
 
 func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
+		if r.Method == "OPTIONS" { 
+			return 
+		}
 		log.Println("Received the game request")
 		fmt.Fprint(w, "You entered the Survival")
 
@@ -35,12 +38,17 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 		// gameType := payload.GameType
 
 	    type contextKey string
-		var UserKey contextKey = "user"
+		var UserKey contextKey = "userID"
 
 		user_id := r.Context().Value(UserKey)
 		combos := GetCombos(numCards, target, dbm)
 		var id string
 		// todo: add numcards and target later
+
+		if user_id == nil{
+			fmt.Println("There was an error getting your user_id in makeSurival")
+		}
+		fmt.Println("In makesurvival we got the userid:", user_id)
 		err := dbm.pool.QueryRow(r.Context(),
 			"INSERT INTO solo_survival_games(user_id, combos) VALUES ($1, $2) RETURNING id",
 			user_id, combos,

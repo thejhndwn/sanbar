@@ -19,6 +19,9 @@ type LoginRequest struct {
     Password string `json:"password"`
 }
 
+type contextKey string
+const userIDKey contextKey = "userID"
+
 
 func LoginHandler( dbm *DatabaseManager) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request){
@@ -75,17 +78,48 @@ func RegisterHandler(dbm *DatabaseManager) http.HandlerFunc {
 	}
 }
 
-func AuthorizeUser() {
+func NewUser(dbm *DatabaseManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request){
+		fmt.Println("We are going to add this new user")
+		token := r.Header.Get("Authorization")
 
+		if err:= CreateUserWithToken(token, dbm); err != nil {
+			fmt.Printf("error create the user with token in newuser: %v", err)	
+		}
+	}
+}
+
+func AuthUser(next http.HandlerFunc, dbm *DatabaseManager) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request){
+		fmt.Println("In the auth middleware")
+		token := r.Header.Get("Authorization")
+		fmt.Println("we found authheader:", token)
+		userID := GetUserIDFromToken(token, dbm)
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		next.ServeHTTP(w,r.WithContext(ctx))
+	}
 }
 
 func GetUserIDFromToken(token string, dbm *DatabaseManager) string {
-	ctx:=context.Background()
+	ctx:=context.TODO()
 	var id string
-	err := dbm.pool.QueryRow(ctx, `SELECT id FROM users WHERE guest_token="$1"`, token).Scan(&id)
+	err := dbm.pool.QueryRow(ctx, `SELECT id FROM users WHERE guest_token=$1`, token).Scan(&id)
 	if err != nil {
 		fmt.Printf("error getting id from token: %s", err)
 	}
 
 	return id
 }
+
+func CreateUserWithToken(token string, dbm *DatabaseManager) error {
+	ctx := context.TODO()
+	_, err := dbm.pool.Exec(ctx, `INSERT INTO users (guest_token) VALUES ($1);`, token)
+
+	if err != nil {
+		fmt.Println("There was an error creating the user from the token, CreateUserWithToken")
+		return fmt.Errorf("we failed to create the user with the token")
+	}
+	return nil
+
+}
+	

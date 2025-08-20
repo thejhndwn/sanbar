@@ -18,8 +18,9 @@ func main()	{
 
    cors_middle := cors.New(cors.Options{
         AllowedOrigins: []string{"http://localhost:3000"}, // Frontend origin
-        AllowedMethods: []string{"GET", "POST", "OPTIONS"},
-        AllowedHeaders: []string{"Content-Type"},
+        AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowedHeaders: []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
     })
 
 	if err := dbm.Initialize(c); err != nil {
@@ -29,14 +30,16 @@ func main()	{
 
 	login := LoginHandler(dbm)
 	register := RegisterHandler(dbm)
-	survival := MakeSurvival(dbm)
+	survival := AuthUser(MakeSurvival(dbm), dbm)
 	start := Start(dbm)
 	get := Get(dbm)
 	submit := Submit(dbm)
+	newuser:= NewUser(dbm)
 
 	api := r.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/register", register)
 	api.HandleFunc("/login", login)
+	api.HandleFunc("/newuser", newuser)
 	api.HandleFunc("/newgame", survival)
 
 	game_api := r.PathPrefix("/api/game").Subrouter()

@@ -6,7 +6,11 @@ export const login = (data) => {
 };
 
 export const register = (data) => {
-    return api.post('/api/register', date);
+    return api.post('/api/register', data);
+};
+
+export const newuser = (data) => {
+    return api.post('/api/newuser', data);
 };
 
 

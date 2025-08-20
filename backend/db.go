@@ -150,7 +150,7 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 			password_hash VARCHAR(255),
 			created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 			updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-			is_guest BOOLEAN DEFAULT true,
+			registered BOOLEAN DEFAULT false,
 			guest_token TEXT UNIQUE NOT NULL,
 			verified BOOLEAN DEFAULT false,
 			last_active TIMESTAMP DEFAULT NOW()
@@ -159,9 +159,9 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 		// Create index on email for faster lookups
 		`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
 		`CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)`,
-		`CREATE INDEX IF NOT EXISTS idx_registered_users ON users(is_guest) WHERE is_guest = false`,
-		`CREATE INDEX IF NOT EXISTS idx_guest_users ON users(is_guest) WHERE is_guest = true`,
-		`CREATE INDEX IF NOT EXISTS idx_inactive_guests ON users(created_at, last_active) WHERE is_guest = true`,
+		`CREATE INDEX IF NOT EXISTS idx_registered_users ON users(registered) WHERE registered = true`,
+		`CREATE INDEX IF NOT EXISTS idx_guest_users ON users(registered) WHERE registered = false`,
+		`CREATE INDEX IF NOT EXISTS idx_inactive_guests ON users(created_at, last_active) WHERE registered = false`,
 		
 		`CREATE TABLE IF NOT EXISTS solo_survival_games (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
