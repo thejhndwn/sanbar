@@ -37,10 +37,7 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 		numCards := payload.NumCards
 		// gameType := payload.GameType
 
-	    type contextKey string
-		var UserKey contextKey = "userID"
-
-		user_id := r.Context().Value(UserKey)
+		user_id := r.Context().Value(userIDKey)
 		combos := GetCombos(numCards, target, dbm)
 		var id string
 		// todo: add numcards and target later
@@ -65,8 +62,7 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 		w.Header().Set("Content-type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 
-		if nil := json.NewEncoder(w).Encode(response); err != 
-		nil {
+		if err:= json.NewEncoder(w).Encode(response); err != nil {
 			fmt.Println("JSON encode error:", err)
 		}
 	}

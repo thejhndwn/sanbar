@@ -13,10 +13,12 @@ export function AuthProvider({ children }) {
             let token = savedToken;
             if (!savedToken) {
                 token = crypto.randomUUID();
-                localStorage.setItem('sanbarToken', id);
+                localStorage.setItem('sanbarToken', token);
 
                 try {
-                    await newuser({})
+                    await newuser({
+                        "token": token
+                    })
                     console.log("making the new user was great")
                 } catch (error) {
                     console.error("Failed to create user:", error);

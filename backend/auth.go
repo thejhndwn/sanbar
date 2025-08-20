@@ -82,9 +82,21 @@ func NewUser(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
 		fmt.Println("We are going to add this new user")
 		token := r.Header.Get("Authorization")
+		fmt.Println("got token:", token)
 
 		if err:= CreateUserWithToken(token, dbm); err != nil {
 			fmt.Printf("error create the user with token in newuser: %v", err)	
+		}
+
+		response := map[string]bool{
+			"success": true,
+		}
+
+		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			fmt.Println("JSON encode error:", err)
 		}
 	}
 }
@@ -95,6 +107,7 @@ func AuthUser(next http.HandlerFunc, dbm *DatabaseManager) http.HandlerFunc {
 		token := r.Header.Get("Authorization")
 		fmt.Println("we found authheader:", token)
 		userID := GetUserIDFromToken(token, dbm)
+		fmt.Println("we found the userID:", userID)
 		ctx := context.WithValue(r.Context(), userIDKey, userID)
 		next.ServeHTTP(w,r.WithContext(ctx))
 	}
@@ -114,6 +127,7 @@ func GetUserIDFromToken(token string, dbm *DatabaseManager) string {
 func CreateUserWithToken(token string, dbm *DatabaseManager) error {
 	ctx := context.TODO()
 	_, err := dbm.pool.Exec(ctx, `INSERT INTO users (guest_token) VALUES ($1);`, token)
+	fmt.Println("added user to the db")
 
 	if err != nil {
 		fmt.Println("There was an error creating the user from the token, CreateUserWithToken")

@@ -20,12 +20,15 @@ class ApiClient {
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
+            console.log("definitely not this one")
             throw new Error(error.message || response.statusText);
         }
 
         if (response.status === 204) {
+            console.log("we shouldn't really go in here")
             return {};
         }
+        console.log("return?")
 
         return response.json();
     }
