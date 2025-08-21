@@ -4,7 +4,7 @@ import { createGame } from './api/gameApi';
 import { useNavigate } from 'react-router-dom';
 
 
-export default function NewGameModal({ isOpen, onClose }) {
+export default function NewGameModal({ isOpen, onClose, onClick = () => {} }){
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -19,6 +19,7 @@ export default function NewGameModal({ isOpen, onClose }) {
                 target: 24,
             });
             onClose();
+            onClick();
             navigate(`/game/${id}`);
         } catch (err) {
             console.log(err)

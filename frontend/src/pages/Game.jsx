@@ -57,33 +57,6 @@ const Game = () => {
         }
     };
 
-    const skipProblem = async () => {
-        try {
-            const data = await skipSolve(gameID)
-            if (data.status === 'ended'){
-                setGameState(GAME_STATES.ENDED)
-                return
-            }
-            loadGameData(data.combo);
-            setSelectedItems([])
-            setOperations(null);
-            //checkForBreak(data.problemsSolved);
-        } catch (err) {
-            console.error('Skip failed:', err);
-        }
-    };
-
-    const finishGame = async () => {
-        try {
-            const data = await endGame(gameID)
-            setGameState(GAME_STATES.ENDED);
-            setCurrentScore(data.finalScore);
-            setProblemsSolved(data.problemsSolved);
-        } catch (err) {
-            console.error('End game failed:', err);
-        }
-    };
-
     const loadGameData = (combo, data) => {
         const newCards = combo.split("-").map(createCard);
         setCards(newCards || []);
@@ -243,14 +216,31 @@ const Game = () => {
         }
     };
 
-    const handleSkip = () => {
-        console.log("handleskip pressed")
-        skipProblem();
+    const handleSkip = async () => {
+        try {
+            const data = await skipSolve(gameID)
+            if (data.status === 'ended'){
+                setGameState(GAME_STATES.ENDED)
+                return
+            }
+            loadGameData(data.combo);
+            setSelectedItems([])
+            setOperations(null);
+            //checkForBreak(data.problemsSolved);
+        } catch (err) {
+            console.error('Skip failed:', err);
+        }
     };
 
-    const handleEndGame = () => {
-        console.log("handlend pressed")
-        endGame();
+    const handleEnd= async () => {
+        try {
+            const data = await endGame(gameID)
+            setGameState(GAME_STATES.ENDED);
+            setCurrentScore(data.finalScore);
+            setProblemsSolved(data.problemsSolved);
+        } catch (err) {
+            console.error('End game failed:', err);
+        }
     };
 
     const handlePlayAgain = () => {
@@ -339,7 +329,7 @@ const Game = () => {
         <div className="actions">
         <button onClick={handleUndo}>🔄 Undo </button>
         <button onClick={handleSkip}>⏭️ Skip</button>
-        <button onClick={handleEndGame}>⏹️ End Game</button>
+        <button onClick={handleEnd}>⏹️ End Game</button>
         </div>
         </div>
     );
@@ -349,7 +339,7 @@ const Game = () => {
         <h2>🎉 Game Over!</h2>
         <p>Final Score: <strong>{currentScore}</strong></p>
         <p>Problems Solved: {problemsSolved}</p>
-        <button onClick={handlePlayAgain}>🔁 Play Again</button>
+        <button onClick={ () => setShowNewGameModal(true)}>🔁 Play Again</button>
         </div>
     );
 
@@ -361,7 +351,7 @@ const Game = () => {
 
         {/* Modals */}
         {showNewGameModal && (
-            <NewGameModal onClose={() => setShowNewGameModal(false)} onStart={beginGame} />
+            <NewGameModal isOpen={showNewGameModal} onClose={() => setShowNewGameModal(false)} onClick={() => setGameState(GAME_STATES.READY)}/>
         )}
 
         {showBreakModal && (

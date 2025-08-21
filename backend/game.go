@@ -230,8 +230,12 @@ func Start(dbm *DatabaseManager) http.HandlerFunc {
 // user clicked end early, update game state
 func End(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		gameID:= "id"
-		err := dbm.pool.QueryRow(r.Context(),
+		var payload GenericGamePayload
+		err:= json.NewDecoder(r.Body).Decode(&payload)
+		if err != nil {
+			fmt.Println("There was an error parsing the payload in End")
+		}
+		queryerr := dbm.pool.QueryRow(r.Context(),
 		`UPDATE solo_survival_games
 		SET
 		updated_at = NOW(),
@@ -240,9 +244,9 @@ func End(dbm *DatabaseManager) http.HandlerFunc {
 		scores = array_append(scores, 0),
 		status = 'completed'
 		WHERE id = $1
-		`, gameID)
+		`, payload.GameId)
 
-		if err != nil {
+		if queryerr != nil {
 			fmt.Println("There was an error with the db call in End")
 			return
 		}
