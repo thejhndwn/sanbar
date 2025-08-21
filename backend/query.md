@@ -51,3 +51,56 @@ RETURNING
     time,
     time_spent,
     ARRAY_LENGTH(combos, 1) - (game_index + 1) AS problems_remaining;
+
+
+
+-- for updating the query when completed
+
+WITH update_game AS (
+    UPDATE solo_survival_games
+    SET
+        solve_timestamps = array_append(solve_timestamps, $1),
+        game_index = game_index + 1,
+        scores = array_append(scores, $2),
+        skips = skips + 1,
+        updated_at = NOW(),
+        end_time = CASE 
+            WHEN (game_index + 1) >= array_length(combos, 1) 
+            THEN NOW() 
+            ELSE end_time 
+        END,
+        status = CASE 
+            WHEN (game_index + 1) >= array_length(combos, 1) 
+            THEN 'completed' 
+            ELSE status 
+        END
+    WHERE id = $3
+    RETURNING 
+        combos, 
+        game_index, 
+        (game_index + 1) >= array_length(combos, 1) AS is_last_problem,
+        score,
+        skips
+)
+SELECT combos, game_index, is_last_problem FROM update_game;
+
+
+-- checks completion
+
+WITH updated AS (
+    UPDATE solo_survival_games
+    SET
+        solve_timestamps = array_append(solve_timestamps, $1),
+        game_index = game_index + 1,
+        scores = array_append(scores, $2),
+        updated_at = NOW(),
+        -- Optional: update time, skips, etc.
+        skips = skips + 1
+    WHERE id = $3
+    RETURNING combos, game_index, (game_index + 1) >= array_length(combos, 1) AS is_last_problem
+)
+SELECT 
+    combos, 
+    game_index, 
+    is_last_problem 
+FROM updated;
