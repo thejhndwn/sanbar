@@ -1,7 +1,7 @@
 import NewGameModal from '../NewGameModal';
 import BreakModal from '../BreakModal';
 import { useParams } from 'react-router-dom'
-import { startGame, submitSolve } from '../api/gameApi';
+import { startGame, submitSolve, skipSolve } from '../api/gameApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { evaluate } from 'mathjs';
 
@@ -59,11 +59,11 @@ const Game = () => {
 
     const skipProblem = async () => {
         try {
-            const {combo} = await skip
-            loadGameData(data);
+            const {combo} = await skipSolve(gameID)
+            loadGameData(combo);
             setSelectedItems([])
             setOperations(null);
-            checkForBreak(data.problemsSolved);
+            //checkForBreak(data.problemsSolved);
         } catch (err) {
             console.error('Skip failed:', err);
         }
@@ -207,7 +207,6 @@ const Game = () => {
     // --- Handlers ---
 
     const handleCardClick = (card) => {
-        console.log("I click the card:", card)
         if (selectedItems.length == 0) {
             setSelectedItems([card])
             setCardSelector(card)
@@ -219,34 +218,24 @@ const Game = () => {
         else if (selectedItems.length == 2) {
             addExpression(card)
         }
-        console.log("card has been clicked here's all the updated data")
-        console.log("selectedItems:", selectedItems)
-        console.log("operations:", operations)
     };
 
     const handleOperatorClick = (operator) => {
-        console.log("I click the operator", operator)
         if (selectedItems.length == 0) {
         }
-
         else if (selectedItems.length == 1) {
             setSelectedItems([...selectedItems, operator])
             setOperatorSelector(operator)
         }
-
         else if (selectedItems.length ==2) {
             setSelectedItems([selectedItems[0], operator])
             setOperatorSelector(operator)
         }
-
-        console.log("operator stuff done")
-        console.log(selectedItems)
     };
 
     const handleSkip = () => {
+        console.log("handleskip pressed")
         skipProblem();
-        setSelectedItems([]);
-        setOperations(null);
     };
 
     const handleEndGame = () => {

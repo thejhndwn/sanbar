@@ -18,6 +18,10 @@ type StartGamePayload struct {
 	GameId string `json:"gameId"`
 }
 
+type GenericGamePayload struct {
+	GameId string `json:"gameId"`
+}
+
 
 func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
@@ -79,47 +83,57 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 // if the index is creater than len(combo) then we have done all teh problems. Transition into exit mode (tell the frontend to move into end link, or maybe just let them handle all that)
 func Submit(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx:= context.Background()
-		gameID:= "id"
+		fmt.Println("we are making a submission")
+		
+		var payload GenericGamePayload
+		err:= json.NewDecoder(r.Body).Decode(&payload)
+		if err != nil {
+			fmt.Println("There was an error parsing the payload in submitgame:", err)
+		}
+
 		var gameIndex int
 		var combos []string
 
 		currentTime := time.Now()
-		score := CalculateScore(currentTime)
+		score := CalculateScore(currentTime) // TODO: grab previous timestamp to actually calculate real score
 
-
-		err := dbm.pool.QueryRow(ctx,
+		queryerr := dbm.pool.QueryRow(r.Context(),
 		`UPDATE solo_survival_games
 		SET
-		solve_timestamps = array_append(solve_timestamps, $1) 
-		game_index = game_index +1
-		score = score + $2
-		scores = array_append(scores, $2)
-		updated_at = NOW(),
+		solve_timestamps = array_append(solve_timestamps, $1),
+		game_index = game_index +1,
+		scores = array_append(scores, $2),
+		updated_at = NOW()
 		WHERE id = $3
 		RETURNING combos, game_index
-		`, currentTime, score, gameID).Scan(&combos, &gameIndex)
+		`, currentTime, score, payload.GameId).Scan(&combos, &gameIndex)
 
-		if err != nil {
-			fmt.Println("There was an issue with the db call to start the game and serve the first problem")
+		if queryerr != nil {
+			fmt.Println("There was an issue submitting the solution")
 		}
 
-		// start end procedure, make some handshake to end the thing. or return nothing and let the frontend move you to the end screen
-		// we have to update the game state to 'completed'
-		if gameIndex > len(combos) {
+		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if gameIndex >= len(combos) {
+			response := map[string]string{
+				"status": "ended",
+			}
+			json_err:= json.NewEncoder(w).Encode(response)
+			if json_err != nil {
+				fmt.Println("There was an issue writing the json to the writer")
+			}
 			return
 		}
 
 		// might have to add the header and status
 		response := map[string]string{
+			"status": "ongoing",
 			"combo": combos[gameIndex],
 		}
 		json_err:= json.NewEncoder(w).Encode(response)
-		w.Header().Set("Content-type", "application/json")
-		w.WriteHeader(http.StatusOK)
 
 		if json_err != nil {
-			fmt.Println("There was an issue writing the json to the writer")
+			fmt.Println("There was an issue writing the json to the writer in submit:", json_err)
 		}
 	}
 
@@ -130,14 +144,19 @@ func Get(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx:= context.Background()
 		gameID:= "id"
-		var score int
+		var scores []int
 
 		err:= dbm.pool.QueryRow(ctx, `
-		SELECT score FROM solo_survival_games
+		SELECT scores FROM solo_survival_games
 		WHERE id = "$1"
-		`, gameID).Scan(&score)
+		`, gameID).Scan(&scores)
 		if err != nil {
 			fmt.Println("There was an error getting the game stats in Get")
+		}
+
+		score := 0
+		for _, num := range scores {
+			score += num
 		}
 
 		response := map[string]string{
@@ -150,11 +169,9 @@ func Get(dbm *DatabaseManager) http.HandlerFunc {
 	}
 } 
 
-
-// start button was pressed, get first problem
+// TODO: need to add userID-gameID confirmation
 func Start(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		ctx:= context.Background()
 		fmt.Println("HitStART")
 
 		var payload StartGamePayload
@@ -170,7 +187,7 @@ func Start(dbm *DatabaseManager) http.HandlerFunc {
 		fmt.Println("payload is:", payload)
 
 
-		queryerr := dbm.pool.QueryRow(ctx,
+		queryerr := dbm.pool.QueryRow(r.Context(),
 		`UPDATE solo_survival_games
 		SET
 		updated_at = NOW(),
@@ -224,34 +241,45 @@ func End(dbm *DatabaseManager) http.HandlerFunc {
 // user opts to skip the problem, update the game and serve the next problem
 func Skip(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		ctx:= context.Background()
-		gameID:= "id"
+
+		var payload GenericGamePayload
+		err:= json.NewDecoder(r.Body).Decode(&payload)
+		if err != nil {
+			fmt.Println("There was an error parsing the payload in gamestart")
+		}
+
+
 		var gameIndex int
 		var combos []string
 
 		currentTime := time.Now()
 		score := CalculateSkipScore()
 
-
-		err := dbm.pool.QueryRow(ctx,
+		queryerr := dbm.pool.QueryRow(r.Context(),
 		`UPDATE solo_survival_games
 		SET
-		solve_timestamps = array_append(solve_timestamps, $1) 
-		game_index = game_index +1
-		score = score + $2
-		scores = array_append(scores, $2)
-		updated_at = NOW(),
+		solve_timestamps = array_append(solve_timestamps, $1),
+		game_index = game_index +1,
+		scores = array_append(scores, $2),
+		updated_at = NOW()
 		WHERE id = $3
 		RETURNING combos, game_index
-		`, currentTime, score, gameID).Scan(&combos, &gameIndex)
+		`, currentTime, score, payload.GameId).Scan(&combos, &gameIndex)
 
-		if err != nil {
-			fmt.Println("There was an issue with the db call to start the game and serve the first problem")
+		if queryerr != nil {
+			fmt.Println("there was an error with skip db query:", queryerr)
 		}
 
-		// start end procedure, make some handshake to end the thing. or return nothing and let the frontend move you to the end screen
-		// we have to update the game state to 'completed'
-		if gameIndex > len(combos) {
+		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if gameIndex >= len(combos) {
+			response := map[string]string{
+				"status": "ended",
+			}
+			json_err:= json.NewEncoder(w).Encode(response)
+			if json_err != nil {
+				fmt.Println("There was an issue writing the json to the writer in skip to end")
+			}
 			return
 		}
 
@@ -262,7 +290,7 @@ func Skip(dbm *DatabaseManager) http.HandlerFunc {
 		json_err:= json.NewEncoder(w).Encode(response)
 
 		if json_err != nil {
-			fmt.Println("There was an issue writing the json to the writer")
+			fmt.Println("There was an issue writing the json to the writer in skip to next problem")
 		}
 
 	} 
