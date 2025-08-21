@@ -14,7 +14,7 @@ export const submitSolve = (gameId) => {
 };
 
 export const endGame = (gameId) => {
-    return api.post('api/game/end', { gameId});
+    return api.post('/api/game/end', { gameId});
 }
 
 export const skipSolve = (gameId) => {
