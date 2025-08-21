@@ -14,7 +14,7 @@ func main()	{
 
 	dbc := GetConfigFromEnv()
 	dbm := NewDatabaseManager(dbc)
-	c := context.Background()
+	c := context.TODO()
 
    cors_middle := cors.New(cors.Options{
         AllowedOrigins: []string{"http://localhost:3000"}, // Frontend origin
@@ -31,7 +31,7 @@ func main()	{
 	login := LoginHandler(dbm)
 	register := RegisterHandler(dbm)
 	survival := AuthUser(MakeSurvival(dbm), dbm)
-	start := Start(dbm)
+	start := AuthUser(Start(dbm), dbm)
 	get := Get(dbm)
 	submit := Submit(dbm)
 	skip := Skip(dbm)

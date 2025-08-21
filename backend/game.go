@@ -103,6 +103,10 @@ func Submit(dbm *DatabaseManager) http.HandlerFunc {
 		solve_timestamps = array_append(solve_timestamps, $1),
 		game_index = game_index +1,
 		scores = array_append(scores, $2),
+		score = score + $2,
+		problem_remaining = problem_remaining - 1,
+		problem_solved = problem_solved + 1,
+
 		updated_at = NOW()
 		WHERE id = $3
 		RETURNING combos, game_index
@@ -186,6 +190,8 @@ func Start(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
 		fmt.Println("HitStART")
 
+		userID := r.Context().Value(userIDKey).(string)
+
 		var payload StartGamePayload
 		err:= json.NewDecoder(r.Body).Decode(&payload)
 		if err != nil {
@@ -203,10 +209,12 @@ func Start(dbm *DatabaseManager) http.HandlerFunc {
 		`UPDATE solo_survival_games
 		SET
 		updated_at = NOW(),
-		start_time = NOW()
-		WHERE id = $1
+		start_time = NOW(),
+		status = 'active',
+		problems_remaining = array_length(combos, 1)
+		WHERE id = $1 AND user_id = $2
 		RETURNING combos, game_index
-		`, payload.GameId).Scan(&combos, &gameIndex)
+		`, payload.GameId, userID).Scan(&combos, &gameIndex)
 
 		if queryerr != nil {
 			fmt.Println("There was an issue with the db call to start the game and serve the first problem", queryerr)
