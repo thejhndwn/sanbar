@@ -12,19 +12,3 @@ export const register = (data) => {
 export const newuser = (data) => {
     return api.post('/api/newuser', data);
 };
-
-
-/**
-export const solvePuzzle = (gameId, solution) => {
-  return api.post(`/api/game/${gameId}/solve`, { solution });
-};
-
-export const takeBreak = (gameId) => {
-  return api.post(`/api/game/${gameId}/take-break`, {});
-};
-
-export const continueGame = (gameId) => {
-  return api.post(`/api/game/${gameId}/continue`, {});
-};
-**/ 
-

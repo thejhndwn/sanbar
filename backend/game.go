@@ -122,7 +122,19 @@ func Submit(dbm *DatabaseManager) http.HandlerFunc {
 			if json_err != nil {
 				fmt.Println("There was an issue writing the json to the writer")
 			}
-			return
+			err := dbm.pool.QueryRow(r.Context(),
+			`UPDATE solo_survival_games
+			SET
+			updated_at = NOW(),
+			end_time = NOW(),
+			status = 'completed'
+			WHERE id = $1
+			`, payload.GameId)
+
+			if err != nil {
+				fmt.Println("There was an error with the db call in End")
+			}
+			return 
 		}
 
 		// might have to add the header and status
@@ -218,9 +230,8 @@ func Start(dbm *DatabaseManager) http.HandlerFunc {
 // user clicked end early, update game state
 func End(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		ctx:= context.Background()
 		gameID:= "id"
-		err := dbm.pool.QueryRow(ctx,
+		err := dbm.pool.QueryRow(r.Context(),
 		`UPDATE solo_survival_games
 		SET
 		updated_at = NOW(),
@@ -280,7 +291,20 @@ func Skip(dbm *DatabaseManager) http.HandlerFunc {
 			if json_err != nil {
 				fmt.Println("There was an issue writing the json to the writer in skip to end")
 			}
-			return
+
+			err := dbm.pool.QueryRow(r.Context(),
+			`UPDATE solo_survival_games
+			SET
+			updated_at = NOW(),
+			end_time = NOW(),
+			status = 'completed'
+			WHERE id = $1
+			`, payload.GameId)
+
+			if err != nil {
+				fmt.Println("There was an error with the db call in End")
+			}
+			return 
 		}
 
 		// might have to add the header and status

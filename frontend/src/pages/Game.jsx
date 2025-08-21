@@ -1,7 +1,7 @@
 import NewGameModal from '../NewGameModal';
 import BreakModal from '../BreakModal';
 import { useParams } from 'react-router-dom'
-import { startGame, submitSolve, skipSolve } from '../api/gameApi';
+import { startGame, submitSolve, skipSolve, endGame } from '../api/gameApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { evaluate } from 'mathjs';
 
@@ -59,8 +59,12 @@ const Game = () => {
 
     const skipProblem = async () => {
         try {
-            const {combo} = await skipSolve(gameID)
-            loadGameData(combo);
+            const data = await skipSolve(gameID)
+            if (data.status === 'ended'){
+                setGameState(GAME_STATES.ENDED)
+                return
+            }
+            loadGameData(data.combo);
             setSelectedItems([])
             setOperations(null);
             //checkForBreak(data.problemsSolved);
@@ -69,10 +73,9 @@ const Game = () => {
         }
     };
 
-    const endGame = async () => {
+    const finishGame = async () => {
         try {
-            const res = await fetch('/api/end', { method: 'POST' });
-            const data = await res.json();
+            const data = await endGame(gameID)
             setGameState(GAME_STATES.ENDED);
             setCurrentScore(data.finalScore);
             setProblemsSolved(data.problemsSolved);
@@ -147,6 +150,7 @@ const Game = () => {
     }
 
     // --- Break Timer ---
+    /**
     useEffect(() => {
         if (gameState === GAME_STATES.BREAK) {
             intervalRef.current = setInterval(() => {
@@ -187,6 +191,8 @@ const Game = () => {
         };
     }, [gameState, timeRemaining]);
 
+    **/
+
     // --- Auto-submit when one card is 24 ---
     useEffect(() => {
         const activeCards = cards.filter(card => card.active);
@@ -194,8 +200,12 @@ const Game = () => {
             setTimeout(async () => {
                 try {
                     console.log("we are trying to make the submission")
-                    const { combo } = await submitSolve(gameID)
-                    loadGameData(combo);
+                    const data = await submitSolve(gameID)
+                    if (data.status === 'ended'){
+                        setGameState(GAME_STATES.ENDED)
+                        return
+                    }
+                    loadGameData(data.combo);
                     //checkForBreak(data.problemsSolved);
                 } catch (err) {
                     console.error('Auto-submit failed:', err);
@@ -239,9 +249,8 @@ const Game = () => {
     };
 
     const handleEndGame = () => {
+        console.log("handlend pressed")
         endGame();
-        setSelectedItems([]);
-        setOperations(null);
     };
 
     const handlePlayAgain = () => {
@@ -251,8 +260,6 @@ const Game = () => {
     };
 
     const handleUndo = () => {
-        console.log("undo stuff")
-        console.log(selectedItems)
         if (selectedItems.length ==0) {
         }
         else if (selectedItems.length ==1) {
@@ -262,8 +269,6 @@ const Game = () => {
             setSelectedItems(selectedItems.slice(0,1))
             setOperatorSelector(null)
         }
-        console.log('this is the undo')
-        console.log(selectedItems)
     }   
 
 
