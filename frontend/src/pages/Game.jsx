@@ -1,304 +1,383 @@
-// Game.jsx
-import React, { useState, useEffect, useRef } from 'react';
 import NewGameModal from '../NewGameModal';
 import BreakModal from '../BreakModal';
 import { useParams } from 'react-router-dom'
+import { startGame, submitSolve } from '../api/gameApi';
+import React, { useState, useEffect, useRef } from 'react';
+import { evaluate } from 'mathjs';
 
 const GAME_STATES = {
-  READY: 'ready',
-  PLAYING: 'playing',
-  ENDED: 'ended',
-  BREAK: 'break',
+    READY: 'ready',
+    PLAYING: 'playing',
+    ENDED: 'ended',
+    BREAK: 'break',
 };
 
 // Specifically this is for re
 const Game = () => {
-  const [gameState, setGameState] = useState(GAME_STATES.READY);
-    const {id } = useParams();
+    const [gameState, setGameState] = useState(GAME_STATES.READY);
+    const { gameID } = useParams();
 
-  // Game data from backend
+    // Game data from backend
+    //
+    const cardIdRef = useRef(0)
+    const createCard = (value, position) => ({
+        id: cardIdRef.current++,
+        value: Number(value),
+        position: position,
+        active: true,
+    });
     // TODO: Put this in their own component? 
-  const [cards, setCards] = useState([]); // Each card: { id, value }
-  const [currentScore, setCurrentScore] = useState(0);
-  const [problemsSolved, setProblemsSolved] = useState(0);
-  const [problemsRemaining, setProblemsRemaining] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0);
+    const [cards, setCards] = useState([]); // Each card: { id, value }
+    const [currentScore, setCurrentScore] = useState(0);
+    const [problemsSolved, setProblemsSolved] = useState(0);
+    const [problemsRemaining, setProblemsRemaining] = useState(0);
+    const [timeRemaining, setTimeRemaining] = useState(0);
 
-  // Expression & selected items (for UI)
-  const [selectedItems, setSelectedItems] = useState([]); // IDs or values
+    // Expression & selected items (for UI)
+    const [ selectedItems, setSelectedItems] = useState([]); // IDs or values
     const [ operations, setOperations] = useState([]);
+    const [ cardSelector, setCardSelector ] = useState('');
+    const [ operatorSelector, setOperatorSelector ] = useState('');
 
-  const [showNewGameModal, setShowNewGameModal] = useState(false);
-  const [showBreakModal, setShowBreakModal] = useState(false);
-  const [breakTimeLeft, setBreakTimeLeft] = useState(600);
+    const [showNewGameModal, setShowNewGameModal] = useState(false);
+    const [showBreakModal, setShowBreakModal] = useState(false);
+    const [breakTimeLeft, setBreakTimeLeft] = useState(600);
 
     // TODO: what is this? 
-  const intervalRef = useRef(null);
+    const intervalRef = useRef(null);
 
-  // --- API Calls ---
-  const startGame = async () => {
-    try {
-      const res = await fetch('/api/start', { method: 'POST' });
-      const data = await res.json();
-      loadGameData(data);
-      setUndoStack([]); // Reset undo stack
-      setGameState(GAME_STATES.PLAYING);
-    } catch (err) {
-      console.error('Failed to start game:', err);
-    }
-  };
-
-    /** j
-
-  const handleUndo = async () => {
-    if (undoStack.length === 0) return;
-
-    const lastState = undoStack[undoStack.length - 1];
-    setUndoStack((prev) => prev.slice(0, -1));
-
-    // Optimistically restore
-    setCards(lastState.cards);
-    setSelectedItems(lastState.selectedItems);
-    setOperation(lastState.operation);
-    setTimeRemaining(lastState.timeRemaining);
-
-    // Tell backend to undo
-    try {
-      const res = await fetch('/api/undo', { method: 'POST' });
-      const data = await res.json();
-      if (data.valid) {
-        loadGameData(data); // Ensure sync with backend
-      }
-    } catch (err) {
-      console.error('Undo failed on backend:', err);
-      // Optionally: reload game or show warning
-    }
-  };
-
-    **/
-
-  const skipProblem = async () => {
-    try {
-      const res = await fetch('/api/skip', { method: 'POST' });
-      const data = await res.json();
-      loadGameData(data);
-      setSelectedItems([]);
-      setOperation(null);
-      checkForBreak(data.problemsSolved);
-    } catch (err) {
-      console.error('Skip failed:', err);
-    }
-  };
-
-  const endGame = async () => {
-    try {
-      const res = await fetch('/api/end', { method: 'POST' });
-      const data = await res.json();
-      setGameState(GAME_STATES.ENDED);
-      setCurrentScore(data.finalScore);
-      setProblemsSolved(data.problemsSolved);
-    } catch (err) {
-      console.error('End game failed:', err);
-    }
-  };
-
-  const loadGameData = (data) => {
-    setCards(data.cards?.map((c) => ({ id: c.id, value: c.value })) || []);
-    setCurrentScore(data.score || 0);
-    setProblemsSolved(data.problemsSolved || 0);
-    setProblemsRemaining(data.problemsRemaining || 0);
-    setTimeRemaining(data.timeRemaining || 0);
-  };
-
-  const checkForBreak = (currentProblemsSolved) => {
-      //TODO: make constant
-    if (currentProblemsSolved > 0 && currentProblemsSolved % 100 === 0) {
-      setBreakTimeLeft(600);
-      setGameState(GAME_STATES.BREAK);
-      setShowBreakModal(true);
-    }
-  };
-
-  // --- Break Timer ---
-  useEffect(() => {
-    if (gameState === GAME_STATES.BREAK) {
-      intervalRef.current = setInterval(() => {
-        setBreakTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            setShowBreakModal(false);
-            setGameState(GAME_STATES.PLAYING);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [gameState]);
-
-  // --- Problem Timer ---
-  useEffect(() => {
-    if (gameState === GAME_STATES.PLAYING && timeRemaining > 0) {
-      intervalRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            skipProblem();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 10);
-    }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [gameState, timeRemaining]);
-
-  // --- Auto-submit when one card is 24 ---
-  useEffect(() => {
-    if (gameState === GAME_STATES.PLAYING && cards.length === 1 && cards[0].value === 24) {
-      setTimeout(async () => {
+    // --- API Calls ---
+    const beginGame = async () => {
         try {
-          await fetch('/api/submit', { method: 'POST' });
-          // Backend will advance to next problem
-          const res = await fetch('/api/state'); // or include in submit response
-          const data = await res.json();
-          loadGameData(data);
-          checkForBreak(data.problemsSolved);
+            const {combo} = await startGame(gameID)
+            loadGameData(combo, {});
+            setGameState(GAME_STATES.PLAYING);
         } catch (err) {
-          console.error('Auto-submit failed:', err);
+            console.error('Failed to start game:', err);
         }
-      }, 600);
+    };
+
+    const skipProblem = async () => {
+        try {
+            const {combo} = await skip
+            loadGameData(data);
+            setSelectedItems([])
+            setOperations(null);
+            checkForBreak(data.problemsSolved);
+        } catch (err) {
+            console.error('Skip failed:', err);
+        }
+    };
+
+    const endGame = async () => {
+        try {
+            const res = await fetch('/api/end', { method: 'POST' });
+            const data = await res.json();
+            setGameState(GAME_STATES.ENDED);
+            setCurrentScore(data.finalScore);
+            setProblemsSolved(data.problemsSolved);
+        } catch (err) {
+            console.error('End game failed:', err);
+        }
+    };
+
+    const loadGameData = (combo, data) => {
+        const newCards = combo.split("-").map(createCard);
+        setCards(newCards || []);
+        //TODO: change the below to use the data.values OR use the frontend saved values
+        setCurrentScore(data.score || 0);
+        setProblemsSolved(data.problemsSolved || 0);
+        setProblemsRemaining(data.problemsRemaining || 0);
+        setTimeRemaining(data.timeRemaining || 0);
+    };
+
+    const checkForBreak = (currentProblemsSolved) => {
+        //TODO: make constant
+        if (currentProblemsSolved > 0 && currentProblemsSolved % 100 === 0) {
+            setBreakTimeLeft(600);
+            setGameState(GAME_STATES.BREAK);
+            setShowBreakModal(true);
+        }
+    };
+
+    const addExpression = (selectedCard) => {
+        // add card state to expressions
+        console.log("we are tyring to make an expression")
+        console.log(selectedItems)
+        const selected = selectedItems[0];
+        console.log("selected:", selected)
+        setOperations([...operations, {
+            cards,
+            selected,
+        }])
+        console.log("operation set")
+        // clear selectedItems, add the new expressionSol and update the cardSelector
+        const operatorMap = { 'x': '*', '%': '/' };
+        const operator = operatorMap[selectedItems[1]] || selectedItems[1];
+        const expr = selected.value + operator + selectedCard.value
+        console.log("we made an expr:", expr)
+        const result = evaluate(expr); //TODO: turn this into a card
+        console.log("evaluated to:", result)
+        const resultCard = createCard(result, selectedCard.position)
+        setSelectedItems([resultCard])
+        setCards(prevCards => {
+            const updatedCards = prevCards.map(card =>
+                card.id === selected.id || selectedCard.id === card.id
+                ? { ...card, active: false}
+                : card
+            );
+            console.log(updatedCards)
+            return [...updatedCards, resultCard]
+        })
+        setCardSelector(resultCard)
+        setOperatorSelector(null)
     }
-  }, [cards, gameState]);
 
-  // --- Handlers ---
-
-  const handleCardClick = (card) => {
-
-      //TODO: make conditions for card just click, adjust selector
-      //selector important for third card assumptions, and operator var
-      /**
-    if (selectedItems.length >= 2) return; // Already selected two
-
-    const newSelection = [...selectedItems, card];
-    setSelectedItems(newSelection);
-
-    if (newSelection.length === 2 && operation) {
-      const [c1, c2] = newSelection;
-      applyOperation(c1.id, c2.id, operation);
+    const popOperation = () => {
+        console.log("we are trying to pop an operation")
+        console.log(operations)
+        if (operations.length === 0) {
+            return
+        }
+        const lastState = operations[operations.length - 1];
+        setCards(lastState.cards)
+        setCardSelector(lastState.selected)
+        setSelectedItems([lastState.selected])
+        setOperations(prev => prev.slice(0, -1));
     }
-      **/
 
-            
-  };
+    // --- Break Timer ---
+    useEffect(() => {
+        if (gameState === GAME_STATES.BREAK) {
+            intervalRef.current = setInterval(() => {
+                setBreakTimeLeft((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(intervalRef.current);
+                        setShowBreakModal(false);
+                        setGameState(GAME_STATES.PLAYING);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
 
-  const handleSkip = () => {
-    skipProblem();
-    setSelectedItems([]);
-    setOperation(null);
-  };
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [gameState]);
 
-  const handleEndGame = () => {
-    endGame();
-    setSelectedItems([]);
-    setOperation(null);
-  };
+    // --- Problem Timer ---
+    useEffect(() => {
+        if (gameState === GAME_STATES.PLAYING && timeRemaining > 0) {
+            intervalRef.current = setInterval(() => {
+                setTimeRemaining((prev) => {
+                    if (prev <= 1) {
+                        clearInterval(intervalRef.current);
+                        skipProblem();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 10);
+        }
 
-  const handlePlayAgain = () => {
-    startGame();
-    setSelectedItems([]);
-    setOperation(null);
-  };
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [gameState, timeRemaining]);
+
+    // --- Auto-submit when one card is 24 ---
+    useEffect(() => {
+        const activeCards = cards.filter(card => card.active);
+        if (gameState === GAME_STATES.PLAYING && activeCards.length === 1 && activeCards[0].value === 24) {
+            setTimeout(async () => {
+                try {
+                    console.log("we are trying to make the submission")
+                    const { combo } = await submitSolve(gameID)
+                    loadGameData(combo);
+                    //checkForBreak(data.problemsSolved);
+                } catch (err) {
+                    console.error('Auto-submit failed:', err);
+                }
+            }, 600);
+        }
+    }, [cards, gameState]);
+
+    // --- Handlers ---
+
+    const handleCardClick = (card) => {
+        console.log("I click the card:", card)
+        if (selectedItems.length == 0) {
+            setSelectedItems([card])
+            setCardSelector(card)
+        }
+        else if (selectedItems.length == 1) {
+            setSelectedItems([card])
+            setCardSelector(card)
+        }
+        else if (selectedItems.length == 2) {
+            addExpression(card)
+        }
+        console.log("card has been clicked here's all the updated data")
+        console.log("selectedItems:", selectedItems)
+        console.log("operations:", operations)
+    };
+
+    const handleOperatorClick = (operator) => {
+        console.log("I click the operator", operator)
+        if (selectedItems.length == 0) {
+        }
+
+        else if (selectedItems.length == 1) {
+            setSelectedItems([...selectedItems, operator])
+            setOperatorSelector(operator)
+        }
+
+        else if (selectedItems.length ==2) {
+            setSelectedItems([selectedItems[0], operator])
+            setOperatorSelector(operator)
+        }
+
+        console.log("operator stuff done")
+        console.log(selectedItems)
+    };
+
+    const handleSkip = () => {
+        skipProblem();
+        setSelectedItems([]);
+        setOperations(null);
+    };
+
+    const handleEndGame = () => {
+        endGame();
+        setSelectedItems([]);
+        setOperations(null);
+    };
+
+    const handlePlayAgain = () => {
+        beginGame();
+        setSelectedItems([]);
+        setOperations(null);
+    };
+
+    const handleUndo = () => {
+        console.log("undo stuff")
+        console.log(selectedItems)
+        if (selectedItems.length ==0) {
+        }
+        else if (selectedItems.length ==1) {
+            popOperation()
+        }
+        else if (selectedItems.length ==2) {
+            setSelectedItems(selectedItems.slice(0,1))
+            setOperatorSelector(null)
+        }
+        console.log('this is the undo')
+        console.log(selectedItems)
+    }   
 
 
-  const handleExitBreakEarly = () => {
-    setShowBreakModal(false);
-    setGameState(GAME_STATES.PLAYING);
-    clearInterval(intervalRef.current);
-  };
+    const handleExitBreakEarly = () => {
+        setShowBreakModal(false);
+        setGameState(GAME_STATES.PLAYING);
+        clearInterval(intervalRef.current);
+    };
 
-  // --- Render ---
+    // --- Render ---
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
-  const renderReadyState = () => (
-    <div className="game-ready">
-      <h2>🎯 Ready to Play 24?</h2>
-      <button onClick={startGame}>Start Game</button>
-    </div>
-  );
+    const renderReadyState = () => (
+        <div className="game-ready">
+        <h2>🎯 Ready to Play 24?</h2>
+        <button onClick={beginGame}>Start Game</button>
+        </div>
+    );
 
-  const renderInGameState = () => (
-    <div className="game-playing">
-      <div className="game-header">
+    const renderInGameState = () => (
+        <div className="game-playing">
+        <div className="game-header">
         <div>Score: <strong>{currentScore}</strong></div>
         <div>Problems: {problemsSolved} / {problemsSolved + problemsRemaining}</div>
         <div>Time: <strong>{formatTime(timeRemaining)}</strong></div>
-      </div>
+        </div>
 
-      <div className="cards-container">
-        {cards.map((card) => (
-          <button
-            key={card.id}
-            className={`card-btn ${selectedItems.find(c => c.id === card.id) ? 'selected' : ''}`}
-            onClick={() => handleCardClick(card)}
-            disabled={selectedItems.length >= 2 && !selectedItems.find(c => c.id === card.id)}
-          >
-            {card.value}
-          </button>
+        <div className="cards-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', padding: '10px' }}>
+        {Array.from({ length: 4 }, (_, pos) => {
+            const card = cards.find(c => c.position === pos && c.active);
+            return (
+                <div key={pos} className="card-slot">
+                {card ? (
+                    <button
+                    className={`card-btn ${cardSelector.id === card.id ? 'selected' : ''}`}
+                    onClick={() => handleCardClick(card)}
+                    disabled={cardSelector.id === card.id}
+                    >
+                    {card.value}
+                    </button>
+                ) : (
+                    <div className="card-placeholder"></div>
+                )}
+                </div>
+            );
+        })}
+        </div>
+        <div className="operations-container">
+        {['+', '-', 'x', '%'].map((operator) => (
+            <button
+            key={operator}
+            className={`operation-btn`}
+            onClick={() => handleOperatorClick(operator)}
+            disabled={operatorSelector === operator}
+            >
+            {operator}
+            </button>
         ))}
-      </div>
+
+        </div>
 
 
-      <div className="actions">
-        <button onClick={handleUndo}> // disable if expressions is empty
-          🔄 Undo
-        </button>
+        <div className="actions">
+        <button onClick={handleUndo}>🔄 Undo </button>
         <button onClick={handleSkip}>⏭️ Skip</button>
         <button onClick={handleEndGame}>⏹️ End Game</button>
-      </div>
-    </div>
-  );
+        </div>
+        </div>
+    );
 
-  const renderEndGameState = () => (
-    <div className="game-ended">
-      <h2>🎉 Game Over!</h2>
-      <p>Final Score: <strong>{currentScore}</strong></p>
-      <p>Problems Solved: {problemsSolved}</p>
-      <button onClick={handlePlayAgain}>🔁 Play Again</button>
-    </div>
-  );
+    const renderEndGameState = () => (
+        <div className="game-ended">
+        <h2>🎉 Game Over!</h2>
+        <p>Final Score: <strong>{currentScore}</strong></p>
+        <p>Problems Solved: {problemsSolved}</p>
+        <button onClick={handlePlayAgain}>🔁 Play Again</button>
+        </div>
+    );
 
-  return (
-    <div className="game-container">
-      {gameState === GAME_STATES.READY && renderReadyState()}
-      {gameState === GAME_STATES.PLAYING && renderInGameState()}
-      {gameState === GAME_STATES.ENDED && renderEndGameState()}
+    return (
+        <div className="game-container">
+        {gameState === GAME_STATES.READY && renderReadyState()}
+        {gameState === GAME_STATES.PLAYING && renderInGameState()}
+        {gameState === GAME_STATES.ENDED && renderEndGameState()}
 
-      {/* Modals */}
-      {showNewGameModal && (
-        <NewGameModal onClose={() => setShowNewGameModal(false)} onStart={startGame} />
-      )}
+        {/* Modals */}
+        {showNewGameModal && (
+            <NewGameModal onClose={() => setShowNewGameModal(false)} onStart={beginGame} />
+        )}
 
-      {showBreakModal && (
-        <BreakModal
-          timeLeft={breakTimeLeft}
-          onExitEarly={handleExitBreakEarly}
-        />
-      )}
-    </div>
-  );
+        {showBreakModal && (
+            <BreakModal
+            timeLeft={breakTimeLeft}
+            onExitEarly={handleExitBreakEarly}
+            />
+        )}
+        </div>
+    );
 };
 
 export default Game;

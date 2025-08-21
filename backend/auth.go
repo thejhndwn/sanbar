@@ -80,7 +80,6 @@ func RegisterHandler(dbm *DatabaseManager) http.HandlerFunc {
 
 func NewUser(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		fmt.Println("We are going to add this new user")
 		token := r.Header.Get("Authorization")
 		fmt.Println("got token:", token)
 
@@ -103,7 +102,6 @@ func NewUser(dbm *DatabaseManager) http.HandlerFunc {
 
 func AuthUser(next http.HandlerFunc, dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
-		fmt.Println("In the auth middleware")
 		token := r.Header.Get("Authorization")
 		fmt.Println("we found authheader:", token)
 		userID := GetUserIDFromToken(token, dbm)
@@ -127,7 +125,6 @@ func GetUserIDFromToken(token string, dbm *DatabaseManager) string {
 func CreateUserWithToken(token string, dbm *DatabaseManager) error {
 	ctx := context.TODO()
 	_, err := dbm.pool.Exec(ctx, `INSERT INTO users (guest_token) VALUES ($1);`, token)
-	fmt.Println("added user to the db")
 
 	if err != nil {
 		fmt.Println("There was an error creating the user from the token, CreateUserWithToken")

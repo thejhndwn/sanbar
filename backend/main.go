@@ -34,6 +34,7 @@ func main()	{
 	start := Start(dbm)
 	get := Get(dbm)
 	submit := Submit(dbm)
+	skip := Skip(dbm)
 	newuser:= NewUser(dbm)
 
 	api := r.PathPrefix("/api").Subrouter()
@@ -43,9 +44,10 @@ func main()	{
 	api.HandleFunc("/newgame", survival)
 
 	game_api := r.PathPrefix("/api/game").Subrouter()
-	game_api.HandleFunc("/{id}/", start)
-	game_api.HandleFunc("/{id}/get", get)
-	game_api.HandleFunc("/{id}/submit", submit)
+	game_api.HandleFunc("/start", start)
+	game_api.HandleFunc("/get", get)
+	game_api.HandleFunc("/submit", submit)
+	game_api.HandleFunc("/skip", skip)
 
 	leaderboard_api := r.PathPrefix("/api/leaderboard").Subrouter()
 	leaderboard_api.HandleFunc("/survival", Survival)

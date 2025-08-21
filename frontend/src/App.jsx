@@ -11,7 +11,7 @@ export default function App() {
         <main style={{ flex: 1, padding: '20px', overflow: 'auto' }}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/game/:id" element={<Game />} />
+            <Route path="/game/:gameID" element={<Game />} />
           </Routes>
         </main>
       </div>

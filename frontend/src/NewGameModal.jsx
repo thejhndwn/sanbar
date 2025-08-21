@@ -13,13 +13,11 @@ export default function NewGameModal({ isOpen, onClose }) {
     const startQuickGame = async () => {
         setLoading(true);
         try {
-            console.log("welcome to the thunderdome")
             const { id }= await createGame({
                 game_type: 'solo_survival',
                 num_cards: 4,
                 target: 24,
             });
-            console.log("I cannot belive the game was created")
             onClose();
             navigate(`/game/${id}`);
         } catch (err) {

@@ -8,18 +8,13 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     useEffect(() => {
         const initUser = async () => {
-            console.log("sanity check that we're grabbing the token")
             const savedToken = localStorage.getItem('sanbarToken')
             let token = savedToken;
             if (!savedToken) {
                 token = crypto.randomUUID();
                 localStorage.setItem('sanbarToken', token);
-
                 try {
-                    await newuser({
-                        "token": token
-                    })
-                    console.log("making the new user was great")
+                    await newuser({ token })
                 } catch (error) {
                     console.error("Failed to create user:", error);
                 }

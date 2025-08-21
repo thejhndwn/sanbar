@@ -5,14 +5,18 @@ export const createGame = (data) => {
   return api.post('/api/newgame', data);
 };
 
-export const solvePuzzle = (gameId, solution) => {
-  return api.post(`/api/game/${gameId}/solve`, { solution });
+export const startGame = (gameId) => {
+    return api.post('/api/game/start', {gameId});
+};
+
+export const submitSolve = (gameId) => {
+  return api.post(`/api/game/submit`, { gameId});
 };
 
 export const takeBreak = (gameId) => {
-  return api.post(`/api/game/${gameId}/take-break`, {});
+  return api.post(`/api/game/break`, { gameId });
 };
 
 export const continueGame = (gameId) => {
-  return api.post(`/api/game/${gameId}/continue`, {});
+  return api.post(`/api/game/continue`, { gameId });
 };

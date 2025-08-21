@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"time"
-	"log"
 )	
 
 type NewGamePayload struct {
@@ -15,18 +14,21 @@ type NewGamePayload struct {
 	GameType string `json:"game_type"`
 }
 
+type StartGamePayload struct {
+	GameId string `json:"gameId"`
+}
+
 
 func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
 		if r.Method == "OPTIONS" { 
 			return 
 		}
-		log.Println("Received the game request")
 
 		var payload NewGamePayload
 		if err := json.NewDecoder(r.Body).Decode(&payload);
 		err != nil {
-			http.Error(w, "INvalid JSON",
+			http.Error(w, "Invalid JSON",
 			http.StatusBadRequest)
 			return 
 		}
@@ -34,12 +36,10 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 		defer r.Body.Close()
 		target := payload.Target
 		numCards := payload.NumCards
-		// gameType := payload.GameType
 
 		user_id := r.Context().Value(userIDKey)
 		combos := GetCombos(numCards, target, dbm)
 		var id string
-		// todo: add numcards and target later
 
 		if user_id == nil{
 			fmt.Println("There was an error getting your user_id in makeSurival")
@@ -48,23 +48,23 @@ func MakeSurvival(dbm *DatabaseManager) http.HandlerFunc {
 		err := dbm.pool.QueryRow(r.Context(),
 			"INSERT INTO solo_survival_games(user_id, combos) VALUES ($1, $2) RETURNING id",
 			user_id, combos,
-		).Scan(&id)
+					).Scan(&id)
 
-		if err != nil {
-			fmt.Println("make survival failed")
-		}
-
-		response := map[string]string{
-			"id": id,
-		}
-
-		w.Header().Set("Content-type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-
-		if err:= json.NewEncoder(w).Encode(response); err != nil {
-			fmt.Println("JSON encode error:", err)
-		}
+	if err != nil {
+		fmt.Println("make survival failed")
 	}
+
+	response := map[string]string{
+		"id": id,
+	}
+
+	w.Header().Set("Content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	if err:= json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Println("JSON encode error:", err)
+	}
+}
 
 
 }
@@ -89,21 +89,21 @@ func Submit(dbm *DatabaseManager) http.HandlerFunc {
 
 
 		err := dbm.pool.QueryRow(ctx,
-			`UPDATE solo_survival_games
-			SET
-				solve_timestamps = array_append(solve_timestamps, $1) 
-				game_index = game_index +1
-				score = score + $2
-				scores = array_append(scores, $2)
-				updated_at = NOW(),
-			WHERE id = $3
-			RETURNING combos, game_index
-			`, currentTime, score, gameID).Scan(&combos, &gameIndex)
+		`UPDATE solo_survival_games
+		SET
+		solve_timestamps = array_append(solve_timestamps, $1) 
+		game_index = game_index +1
+		score = score + $2
+		scores = array_append(scores, $2)
+		updated_at = NOW(),
+		WHERE id = $3
+		RETURNING combos, game_index
+		`, currentTime, score, gameID).Scan(&combos, &gameIndex)
 
 		if err != nil {
 			fmt.Println("There was an issue with the db call to start the game and serve the first problem")
 		}
-			
+
 		// start end procedure, make some handshake to end the thing. or return nothing and let the frontend move you to the end screen
 		// we have to update the game state to 'completed'
 		if gameIndex > len(combos) {
@@ -115,12 +115,14 @@ func Submit(dbm *DatabaseManager) http.HandlerFunc {
 			"combo": combos[gameIndex],
 		}
 		json_err:= json.NewEncoder(w).Encode(response)
+		w.Header().Set("Content-type", "application/json")
+		w.WriteHeader(http.StatusOK)
 
 		if json_err != nil {
 			fmt.Println("There was an issue writing the json to the writer")
 		}
 	}
-	
+
 }
 
 // game is ended, get the game stats?
@@ -131,9 +133,9 @@ func Get(dbm *DatabaseManager) http.HandlerFunc {
 		var score int
 
 		err:= dbm.pool.QueryRow(ctx, `
-			SELECT score FROM solo_survival_games
-			WHERE id = "$1"
-			`, gameID).Scan(&score)
+		SELECT score FROM solo_survival_games
+		WHERE id = "$1"
+		`, gameID).Scan(&score)
 		if err != nil {
 			fmt.Println("There was an error getting the game stats in Get")
 		}
@@ -153,23 +155,32 @@ func Get(dbm *DatabaseManager) http.HandlerFunc {
 func Start(dbm *DatabaseManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request){
 		ctx:= context.Background()
+		fmt.Println("HitStART")
 
-		gameID:= "id"
+		var payload StartGamePayload
+		err:= json.NewDecoder(r.Body).Decode(&payload)
+		if err != nil {
+			fmt.Println("There was an error parsing the payload in gamestart")
+			fmt.Println(r.Body)
+			fmt.Println(payload)
+		}
+
 		var gameIndex int
 		var combos []string
+		fmt.Println("payload is:", payload)
 
 
-		err := dbm.pool.QueryRow(ctx,
-			`UPDATE solo_survival_games
-			SET
-				updated_at = NOW(),
-				start_time = NOW()
-			WHERE id = $1
-			RETURNING combos, game_index
-			`, gameID).Scan(&combos, &gameIndex)
+		queryerr := dbm.pool.QueryRow(ctx,
+		`UPDATE solo_survival_games
+		SET
+		updated_at = NOW(),
+		start_time = NOW()
+		WHERE id = $1
+		RETURNING combos, game_index
+		`, payload.GameId).Scan(&combos, &gameIndex)
 
-		if err != nil {
-			fmt.Println("There was an issue with the db call to start the game and serve the first problem")
+		if queryerr != nil {
+			fmt.Println("There was an issue with the db call to start the game and serve the first problem", queryerr)
 		}
 
 
@@ -193,15 +204,15 @@ func End(dbm *DatabaseManager) http.HandlerFunc {
 		ctx:= context.Background()
 		gameID:= "id"
 		err := dbm.pool.QueryRow(ctx,
-			`UPDATE solo_survival_games
-			SET
-				updated_at = NOW(),
-				end_time = NOW(),
-				solve_timestamps = array_append(solve_timestamps, NOW()),
-				scores = array_append(scores, 0),
-				status = 'completed'
-			WHERE id = $1
-			`, gameID)
+		`UPDATE solo_survival_games
+		SET
+		updated_at = NOW(),
+		end_time = NOW(),
+		solve_timestamps = array_append(solve_timestamps, NOW()),
+		scores = array_append(scores, 0),
+		status = 'completed'
+		WHERE id = $1
+		`, gameID)
 
 		if err != nil {
 			fmt.Println("There was an error with the db call in End")
@@ -223,21 +234,21 @@ func Skip(dbm *DatabaseManager) http.HandlerFunc {
 
 
 		err := dbm.pool.QueryRow(ctx,
-			`UPDATE solo_survival_games
-			SET
-				solve_timestamps = array_append(solve_timestamps, $1) 
-				game_index = game_index +1
-				score = score + $2
-				scores = array_append(scores, $2)
-				updated_at = NOW(),
-			WHERE id = $3
-			RETURNING combos, game_index
-			`, currentTime, score, gameID).Scan(&combos, &gameIndex)
+		`UPDATE solo_survival_games
+		SET
+		solve_timestamps = array_append(solve_timestamps, $1) 
+		game_index = game_index +1
+		score = score + $2
+		scores = array_append(scores, $2)
+		updated_at = NOW(),
+		WHERE id = $3
+		RETURNING combos, game_index
+		`, currentTime, score, gameID).Scan(&combos, &gameIndex)
 
 		if err != nil {
 			fmt.Println("There was an issue with the db call to start the game and serve the first problem")
 		}
-			
+
 		// start end procedure, make some handshake to end the thing. or return nothing and let the frontend move you to the end screen
 		// we have to update the game state to 'completed'
 		if gameIndex > len(combos) {
