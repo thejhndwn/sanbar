@@ -171,7 +171,7 @@ func (dm *DatabaseManager) runMigrations(ctx context.Context) error {
 			status TEXT NOT NULL DEFAULT 'ready' CHECK (status in ('ready', 'active', 'completed')),
 			start_time TIMESTAMP NOT NULL DEFAULT NOW(),
 			end_time TIMESTAMP,
-			game_index INTEGER NOT NULL DEFAULT 0,
+			game_index INTEGER NOT NULL DEFAULT 1,
 			combos TEXT[] NOT NULL DEFAULT '{}', 
 			scores INTEGER[] NOT NULL DEFAULT '{}',
 			score INT NOT NULL DEFAULT 0,
